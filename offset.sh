@@ -28,7 +28,7 @@ print(){
 }
 setup(){
     [ -e $1 ] && die "Error: file ${1} exist"
-    loop_device=$(sudo losetup --show -f "$EMMC" --offset "$2" --sizelimit "$3")
+    loop_device=$(sudo losetup --show -f "$EMMC" --offset "$(($2))" --sizelimit "$(($3))")
     echo "$loop_device" |grep -Eq '/dev/.*loop[0-9]+' && \
         ln -s "$loop_device" "$1" || \
         die "Error: unable to assign loop device"
