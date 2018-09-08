@@ -94,7 +94,8 @@ echo "Copy fstab"
 rm $DIR_INSTALL/etc/fstab
 #cp -a /root/fstab $DIR_INSTALL/etc
 echo 'LABEL=MMCROOTFS / ext4 defaults,noatime,errors=remount-ro 0 1
-tmpfs /tmp tmpfs defaults,nosuid 0 0' > $DIR_INSTALL/etc/fstab
+tmpfs /tmp tmpfs defaults,nosuid 0 0
+/var/swap none swap sw 0 0' > $DIR_INSTALL/etc/fstab
 #cp -a /boot/hdmi.sh $DIR_INSTALL/boot
 
 #add by achaoge 2018-06-22
