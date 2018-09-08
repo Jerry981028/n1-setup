@@ -53,7 +53,7 @@ check_partname(){
     die "Error: partname is invaild"
 }
 
-[ -e $emmc ] && die "Error: emmc not found"
+[ -e $emmc ] || die "Error: emmc not found"
 if [ "$1"  == "-d" ]; then
     check_partname "$2"
     detach "$2"
