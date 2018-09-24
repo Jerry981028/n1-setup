@@ -28,7 +28,7 @@ print(){
 }
 setup(){
     [ -e $1 ] && die "Error: file ${1} exist"
-    loop_device=$(sudo losetup --show -f "$EMMC" --offset "$2" --sizelimit "$3")
+    loop_device=$(sudo losetup --show -f "$EMMC" --offset "$(($2))" --sizelimit "$(($3))")
     echo "$loop_device" |grep -Eq '/dev/.*loop[0-9]+' && \
         ln -s "$loop_device" "$1" || \
         die "Error: unable to assign loop device"
@@ -53,7 +53,7 @@ check_partname(){
     die "Error: partname is invaild"
 }
 
-[ -e $emmc ] && die "Error: emmc not found"
+[ -e $emmc ] || die "Error: emmc not found"
 if [ "$1"  == "-d" ]; then
     check_partname "$2"
     detach "$2"
