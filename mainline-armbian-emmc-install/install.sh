@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 set -e
 echo "Start copy system for DATA partition."
 
@@ -7,11 +7,15 @@ chmod 777 /ddbr
 
 VER=`uname -r`
 
-../offset.sh data
+offset_sh_path=$(readlink -f ../offset.sh)
+pushd /root
+$offset_sh_path data
+$offset_sh_path env
+popd
 
 IMAGE_KERNEL="/boot/zImage"
 IMAGE_INITRD="/boot/initrd.img-$VER"
-PART_ROOT="$(pwd)/data"
+PART_ROOT="/root/data"
 DIR_INSTALL="/ddbr/install"
 IMAGE_DTB="/boot/dtb.img"
 
@@ -47,7 +51,7 @@ fi
 mkdir -p $DIR_INSTALL
 mount -o rw $PART_ROOT $DIR_INSTALL
 
-cd /
+pushd /
 echo "Copy BIN"
 tar -cf - bin | (cd $DIR_INSTALL; tar -xpf -)
 echo "Copy BOOT"
@@ -91,22 +95,16 @@ tar -cf - usr | (cd $DIR_INSTALL; tar -xpf -)
 echo "Copy VAR"
 tar -cf - var | (cd $DIR_INSTALL; tar -xpf -)
 
+popd
+
 echo "Copy fstab"
 
 rm $DIR_INSTALL/etc/fstab
-#cp -a /root/fstab $DIR_INSTALL/etc
-#echo 'LABEL=MMCROOTFS / ext4 defaults,noatime,errors=remount-ro 0 1
-#tmpfs /tmp tmpfs defaults,nosuid 0 0
-#/var/swap none swap sw 0 0' > $DIR_INSTALL/etc/fstab
-#cp -a /boot/hdmi.sh $DIR_INSTALL/boot
+cp -a fstab $DIR_INSTALL/etc/
 
-#add by achaoge 2018-06-22
-#export $(/usr/sbin/fw_printenv mac)
 echo "Modify files for N1 emmc boot"
 /bin/sed -e "/usb [23]/d" -e 's/fatload mmc 0 \([^ ]*\) \([^;]*\)/ext4load mmc 1:c \1 \/boot\/\2/g' -i $DIR_INSTALL/boot/s905_autoscript.cmd
 #/bin/sed -e 's/LABEL=ROOTFS/\/dev\/data/' -e "s/mac=.*/mac=${mac}/" -i $DIR_INSTALL/boot/uEnv.ini
-echo 'examine the situation'
-bash
 /usr/bin/mkimage -C none -A arm -T script -d $DIR_INSTALL/boot/s905_autoscript.cmd $DIR_INSTALL/boot/s905_autoscript
 echo "Emmc boot fixed end"
 
@@ -128,7 +126,6 @@ update-initramfs -b $DIR_INSTALL/boot -ut
 rm /etc/initramfs-tools/scripts/init-top/losetup.sh
 
 
-cd /
 sync
 
 umount $DIR_INSTALL
@@ -137,15 +134,16 @@ echo "*******************************************"
 echo "Done copy ROOTFS"
 echo "*******************************************"
 
-set +e
-echo "Write env bootargs"
-if fw_setenv initargs "root=/dev/data rootflags=data=writeback rw console=ttyS0,115200n8 console=tty0 no_console_suspend consoleblank=0 fsck.repair=yes net.ifnames=0 mac=\${mac}" ; then echo 'done'; else echo "Check if you have fw_setenv command installed" ; fi
+cp -a fw_env.config /etc/
 
+echo "Write env bootargs"
+fw_setenv initargs "root=/dev/data rootflags=data=writeback rw console=ttyS0,115200n8 console=tty0 no_console_suspend consoleblank=0 fsck.repair=yes net.ifnames=0 mac=\${mac}"
 #Edit by achaoge 2018-06-22, for Phicomm N1 boot from emmc
 fw_setenv start_autoscript "if usb start ; then run start_usb_autoscript; fi; if ext4load mmc 1:c 1020000 /boot/s905_autoscript; then autoscr 1020000; fi;"
 
-
-../offset.sh -d data
+pushd /root
+$offset_sh_path -d data
+popd
 
 echo "*******************************************"
 echo "Complete copy OS to eMMC parted DATA"
