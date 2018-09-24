@@ -1,5 +1,5 @@
 #!/bin/sh
-
+set -e
 echo "Start copy system for DATA partition."
 
 mkdir -p /ddbr
@@ -7,20 +7,22 @@ chmod 777 /ddbr
 
 VER=`uname -r`
 
+../offset.sh data
+
 IMAGE_KERNEL="/boot/zImage"
 IMAGE_INITRD="/boot/initrd.img-$VER"
-PART_ROOT="/root/data"
+PART_ROOT="$(pwd)/data"
 DIR_INSTALL="/ddbr/install"
 IMAGE_DTB="/boot/dtb.img"
 
 
 if [ ! -f $IMAGE_KERNEL ] ; then
-    echo "Not KERNEL.  STOP install !!!"
+    echo "No KERNEL.  STOP install !!!"
     return
 fi
 
 if [ ! -f $IMAGE_INITRD ] ; then
-    echo "Not INITRD.  STOP install !!!"
+    echo "No INITRD.  STOP install !!!"
     return
 fi
 
@@ -93,13 +95,13 @@ echo "Copy fstab"
 
 rm $DIR_INSTALL/etc/fstab
 #cp -a /root/fstab $DIR_INSTALL/etc
-echo 'LABEL=MMCROOTFS / ext4 defaults,noatime,errors=remount-ro 0 1
-tmpfs /tmp tmpfs defaults,nosuid 0 0
-/var/swap none swap sw 0 0' > $DIR_INSTALL/etc/fstab
+#echo 'LABEL=MMCROOTFS / ext4 defaults,noatime,errors=remount-ro 0 1
+#tmpfs /tmp tmpfs defaults,nosuid 0 0
+#/var/swap none swap sw 0 0' > $DIR_INSTALL/etc/fstab
 #cp -a /boot/hdmi.sh $DIR_INSTALL/boot
 
 #add by achaoge 2018-06-22
-export $(/usr/sbin/fw_printenv mac)
+#export $(/usr/sbin/fw_printenv mac)
 echo "Modify files for N1 emmc boot"
 /bin/sed -e "/usb [23]/d" -e 's/fatload mmc 0 \([^ ]*\) \([^;]*\)/ext4load mmc 1:c \1 \/boot\/\2/g' -i $DIR_INSTALL/boot/s905_autoscript.cmd
 #/bin/sed -e 's/LABEL=ROOTFS/\/dev\/data/' -e "s/mac=.*/mac=${mac}/" -i $DIR_INSTALL/boot/uEnv.ini
@@ -114,6 +116,18 @@ rm $DIR_INSTALL/usr/bin/ddbr
 rm $DIR_INSTALL/usr/bin/ddbr_backup_nand
 rm $DIR_INSTALL/usr/bin/ddbr_restore_nand
 
+
+echo "patch initramfs"
+mkdir -p /etc/initramfs-tools/scripts/init-top
+mkdir -p $DIR_INSTALL/etc/initramfs-tools/scripts/init-top
+cat initramfs-tools-debian/scripts/init-top/losetup.sh > /etc/initramfs-tools/scripts/init-top/losetup.sh
+cat initramfs-tools-debian/scripts/init-top/losetup.sh > $DIR_INSTALL/etc/initramfs-tools/scripts/init-top/losetup.sh
+chmod +x /etc/initramfs-tools/scripts/init-top/losetup.sh
+chmod +x $DIR_INSTALL/etc/initramfs-tools/scripts/init-top/losetup.sh
+update-initramfs -b $DIR_INSTALL/boot -ut
+rm /etc/initramfs-tools/scripts/init-top/losetup.sh
+
+
 cd /
 sync
 
@@ -123,32 +137,15 @@ echo "*******************************************"
 echo "Done copy ROOTFS"
 echo "*******************************************"
 
-#echo "Writing new kernel image..."
-
-#mkdir -p $DIR_INSTALL/aboot
-#cd $DIR_INSTALL/aboot
-#dd if=/dev/boot of=boot.backup.img
-#abootimg -i /dev/boot > aboot.txt
-#abootimg -x /dev/boot
-#abootimg -u /dev/boot -k $IMAGE_KERNEL
-#abootimg -u /dev/boot -r $IMAGE_INITRD
-#
-#echo "done."
-
-#if [ -f $IMAGE_DTB ] ; then
-#    abootimg -u /dev/boot -s $IMAGE_DTB
-#    echo "Writing new dtb ..."
-#    dd if="$IMAGE_DTB" of="/dev/dtb" bs=262144 status=none && sync
-#    echo "done."
-#fi
-
+set +e
 echo "Write env bootargs"
-#/usr/sbin/fw_setenv initargs "root=/dev/data rootflags=data=writeback rw console=ttyS0,115200n8 console=tty0 no_console_suspend consoleblank=0 fsck.repair=yes net.ifnames=0 mac=\${mac}"
+if fw_setenv initargs "root=/dev/data rootflags=data=writeback rw console=ttyS0,115200n8 console=tty0 no_console_suspend consoleblank=0 fsck.repair=yes net.ifnames=0 mac=\${mac}" ; then echo 'done'; else echo "Check if you have fw_setenv command installed" ; fi
 
 #Edit by achaoge 2018-06-22, for Phicomm N1 boot from emmc
-/usr/sbin/fw_setenv start_autoscript "if usb start ; then run start_usb_autoscript; fi; if ext4load mmc 1:c 1020000 /boot/s905_autoscript; then autoscr 1020000; fi;"
+fw_setenv start_autoscript "if usb start ; then run start_usb_autoscript; fi; if ext4load mmc 1:c 1020000 /boot/s905_autoscript; then autoscr 1020000; fi;"
 
-#e2label $PART_ROOT "MMCROOTFS"
+
+../offset.sh -d data
 
 echo "*******************************************"
 echo "Complete copy OS to eMMC parted DATA"
