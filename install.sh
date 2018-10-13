@@ -1,8 +1,14 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+trap "echo \
+'The script cannot continue due to an error.
+Please unmount and remove /ddbr' \
+" ERR
 
 echo "This script copys your alarm to emmc"
 
-mkdir -p /ddbr
+mkdir /ddbr
 chmod 777 /ddbr
 
 VER=`uname -r`
@@ -14,7 +20,7 @@ DIR_INSTALL="/ddbr/install"
 if ! echo "$VER" |grep -iq "arch"; then echo 'Not Archlinux'; exit 1; fi
 
 if ! ([ -e /dev/mmcblk1p1 ] && [ -e /dev/mmcblk1p1 ]); then
-echo "Not emmc partitions"
+echo "No emmc partitions"
 exit 1
 fi
 
@@ -26,8 +32,11 @@ echo "no offset.sh"
 exit 1
 fi
 
+which fw_setenv >/dev/null
+
+
 echo "Formatting ROOT partition..."
-umount -f $PART_ROOT 2>/dev/null
+umount $PART_ROOT || true
 mkfs.ext4 $PART_ROOT
 e2fsck -f $PART_ROOT
 echo "done."
@@ -95,7 +104,7 @@ echo "Create BOOT"
 mkdir -p $DIR_INSTALL/boot
 
 echo "Formatting BOOT partition..."
-umount -f $PART_BOOT 2>/dev/null
+umount $PART_BOOT || true
 mkfs.fat -F 16 $PART_BOOT
 echo "Copy BOOT"
 mount $PART_BOOT $DIR_INSTALL/boot
@@ -128,6 +137,7 @@ cd /
 sync
 umount -R $DIR_INSTALL
 rmdir $DIR_INSTALL
+rmdir /ddbr
 
 echo "*******************************************"
 echo "Done copy files"
@@ -136,7 +146,9 @@ echo "*******************************************"
 
 e2label $PART_ROOT "MMCROOTFS"
 fatlabel $PART_BOOT "MMCBOOT"
+echo -n "${PART_ROOT} label: "
 e2label $PART_ROOT
+echo -n "${PART_BOOT} label: "
 fatlabel $PART_BOOT
 
 ###
@@ -149,5 +161,5 @@ fw_setenv start_autoscript "if usb start ; then run start_usb_autoscript; fi; if
 popd
 
 echo "*******************************************"
-echo "Complete copy OS to eMMC parted DATA"
+echo "Copied alarm to emmc"
 echo "*******************************************"
