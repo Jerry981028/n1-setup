@@ -13,13 +13,13 @@ chmod 777 /ddbr
 
 VER=`uname -r`
 
-PART_ROOT="/dev/mmcblk1p2"
+PART_ROOT="/dev/mmcblk1p3"
 PART_BOOT="/dev/mmcblk1p1"
 DIR_INSTALL="/ddbr/install"
 
 if ! echo "$VER" |grep -iq "arch"; then echo 'Not Archlinux'; exit 1; fi
 
-if ! ([ -e /dev/mmcblk1p1 ] && [ -e /dev/mmcblk1p1 ]); then
+if ! ([ -e $PART_ROOT ] && [ -e $PART_BOOT ]); then
 echo "No emmc partitions"
 exit 1
 fi
