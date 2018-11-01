@@ -18,6 +18,14 @@ Device         Boot   Start      End  Sectors  Size Id Type
 /dev/mmcblk1p2       483328  1269760   786433  384M 82 Linux swap / Solaris
 /dev/mmcblk1p3      1400832 15269887 13869056  6.6G 83 Linux
 ```
+  
+If you want larger boot partition  
+```
+Device         Boot   Start      End  Sectors  Size Id Type
+/dev/mmcblk1p1       221184  1269760  1048577  512M  e W95 FAT16 (LBA)
+/dev/mmcblk1p2      1400832 15269887 13869056  6.6G 83 Linux
+```
+
 
 ## offset.sh
 Help you modify each emmc partiton  
